@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  body {
+    @apply bg-zinc-950 text-zinc-100 antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-zinc-900; }
+  ::-webkit-scrollbar-thumb { @apply bg-zinc-700 rounded-full; }
+}
+
+@layer components {
+  .card {
+    @apply bg-zinc-900 border border-zinc-800 rounded-xl p-5;
+  }
+  .badge-city {
+    @apply bg-blue-500/10 text-blue-400 text-xs font-medium px-2 py-0.5 rounded-full;
+  }
+  .badge-land {
+    @apply bg-emerald-500/10 text-emerald-400 text-xs font-medium px-2 py-0.5 rounded-full;
+  }
+}
