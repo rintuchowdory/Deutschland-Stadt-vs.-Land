@@ -1,179 +1,125 @@
 import { useState, useMemo } from 'react'
 import { cityRegions, landRegions, calcFairnessScore } from '../data/regions.js'
-import MetricCard from '../components/MetricCard.jsx'
-import ScoreRing from '../components/ScoreRing.jsx'
+import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip } from 'recharts'
 
-const metricDefs = [
-  {
-    key: 'internet',
-    icon: '🌐',
-    title: 'Internetgeschwindigkeit',
-    cityFn: m => m.internet.speed + ' Mbit/s',
-    landFn: m => m.internet.speed + ' Mbit/s',
-    rawFn: m => m.internet.speed,
-    max: 280,
-  },
-  {
-    key: 'glasfaser',
-    icon: '📡',
-    title: 'Glasfaser-Ausbau',
-    cityFn: m => m.internet.glasfaser + '%',
-    landFn: m => m.internet.glasfaser + '%',
-    rawFn: m => m.internet.glasfaser,
-    max: 100,
-  },
-  {
-    key: 'oepnv',
-    icon: '🚌',
-    title: 'Bus-Verbindungen / Tag',
-    cityFn: m => m.oepnv.busseProTag,
-    landFn: m => m.oepnv.busseProTag,
-    rawFn: m => m.oepnv.busseProTag,
-    max: 540,
-  },
-  {
-    key: 'aerzte',
-    icon: '🏥',
-    title: 'Hausärzte / 10.000 Einwohner',
-    cityFn: m => m.aerzte.hausaerztePro10k,
-    landFn: m => m.aerzte.hausaerztePro10k,
-    rawFn: m => m.aerzte.hausaerztePro10k,
-    max: 10,
-  },
-  {
-    key: 'klinik',
-    icon: '🚑',
-    title: 'Entfernung zur nächsten Klinik',
-    cityFn: m => m.aerzte.kmZuKlinik + ' km',
-    landFn: m => m.aerzte.kmZuKlinik + ' km',
-    rawFn: m => Math.max(0, 30 - m.aerzte.kmZuKlinik), // invertiert — näher = besser
-    max: 30,
-  },
-  {
-    key: 'miete',
-    icon: '🏠',
-    title: 'Ø Miete pro m²',
-    cityFn: m => m.wohnen.mietePro_m2.toFixed(1) + ' €',
-    landFn: m => m.wohnen.mietePro_m2.toFixed(1) + ' €',
-    rawFn: m => m.wohnen.mietePro_m2,
-    max: 16,
-    lowerBetter: true,
-  },
+const DIMS = [
+  {key:'internet',label:'Internet'},
+  {key:'oepnv',label:'ÖPNV'},
+  {key:'aerzte',label:'Ärzte'},
+  {key:'bildung',label:'Bildung'},
+  {key:'arbeit',label:'Arbeit'},
+  {key:'wohnen',label:'Wohnen'},
 ]
 
-function GapBadge({ cityScore, landScore }) {
-  const gap = cityScore - landScore
-  if (gap > 40) return <span className="text-xs px-2.5 py-1 rounded-full bg-red-500/10 text-red-400">Sehr großes Gefälle: +{gap} Punkte</span>
-  if (gap > 20) return <span className="text-xs px-2.5 py-1 rounded-full bg-yellow-500/10 text-yellow-400">Mittleres Gefälle: +{gap} Punkte</span>
-  return <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400">Geringes Gefälle: +{gap} Punkte</span>
+const S = { wrap:{maxWidth:1100,margin:'0 auto',padding:'3rem 1.5rem'}, eyebrow:{fontFamily:'IBM Plex Mono',fontSize:10,letterSpacing:'0.12em',textTransform:'uppercase',color:'var(--muted)',marginBottom:8} }
+
+function ScoreCircle({score,label,color}) {
+  const r=42, c=2*Math.PI*r, dash=(score/100)*c
+  return (
+    <div style={{textAlign:'center'}}>
+      <svg width={108} height={108} viewBox="0 0 108 108">
+        <circle cx={54} cy={54} r={r} fill="none" stroke="#E8E4DC" strokeWidth={7}/>
+        <circle cx={54} cy={54} r={r} fill="none" stroke={color} strokeWidth={7}
+          strokeDasharray={`${dash} ${c}`} strokeLinecap="round" transform="rotate(-90 54 54)"
+          style={{transition:'stroke-dasharray 0.5s ease'}}/>
+        <text x={54} y={58} textAnchor="middle" fontSize={22} fontWeight={500} fill={color} fontFamily="Cormorant Garamond,serif">{score}</text>
+      </svg>
+      <div style={{fontSize:13,fontWeight:600,color:'var(--ink)',marginTop:4}}>{label}</div>
+      <div style={{fontSize:11,color:'var(--muted)'}}>{score>=70?'🟢 Gut versorgt':score>=45?'🟡 Durchschnitt':'🔴 Abgehängt'}</div>
+    </div>
+  )
 }
 
 export default function Vergleich() {
   const [cityId, setCityId] = useState(cityRegions[0].id)
   const [landId, setLandId] = useState(landRegions[0].id)
-
-  const city = useMemo(() => cityRegions.find(r => r.id === cityId), [cityId])
-  const land = useMemo(() => landRegions.find(r => r.id === landId), [landId])
-  const cityScore = useMemo(() => calcFairnessScore(city), [city])
-  const landScore = useMemo(() => calcFairnessScore(land), [land])
-
-  const internetRatio = Math.round(city.metrics.internet.speed / land.metrics.internet.speed)
-  const busRatio = Math.round(city.metrics.oepnv.busseProTag / land.metrics.oepnv.busseProTag)
-  const mieteDiff = (city.metrics.wohnen.mietePro_m2 - land.metrics.wohnen.mietePro_m2).toFixed(1)
-
+  const city = useMemo(()=>cityRegions.find(r=>r.id===cityId),[cityId])
+  const land = useMemo(()=>landRegions.find(r=>r.id===landId),[landId])
+  const cs = useMemo(()=>calcFairnessScore(city),[city])
+  const ls = useMemo(()=>calcFairnessScore(land),[land])
+  const radarData = DIMS.map(d=>({dim:d.label, Stadt:cs.dims[d.key], Land:ls.dims[d.key]}))
+  const metrics = [
+    {label:'Internetgeschwindigkeit', cityV:city.metrics.internet.speed+' Mbit/s', landV:land.metrics.internet.speed+' Mbit/s', cityR:city.metrics.internet.speed, landR:land.metrics.internet.speed, max:290},
+    {label:'Glasfaser-Ausbau', cityV:city.metrics.internet.glasfaser+'%', landV:land.metrics.internet.glasfaser+'%', cityR:city.metrics.internet.glasfaser, landR:land.metrics.internet.glasfaser, max:100},
+    {label:'Bus-Verbindungen/Tag', cityV:city.metrics.oepnv.busseProTag, landV:land.metrics.oepnv.busseProTag, cityR:city.metrics.oepnv.busseProTag, landR:land.metrics.oepnv.busseProTag, max:850},
+    {label:'Hausärzte / 10.000 EW', cityV:city.metrics.aerzte.hausaerztePro10k, landV:land.metrics.aerzte.hausaerztePro10k, cityR:city.metrics.aerzte.hausaerztePro10k, landR:land.metrics.aerzte.hausaerztePro10k, max:10},
+    {label:'Ø Miete €/m²', cityV:city.metrics.wohnen.mietePro_m2+'€', landV:land.metrics.wohnen.mietePro_m2+'€', cityR:city.metrics.wohnen.mietePro_m2, landR:land.metrics.wohnen.mietePro_m2, max:23},
+    {label:'Ø Gehalt €/Monat', cityV:city.metrics.arbeit.avgGehalt+'€', landV:land.metrics.arbeit.avgGehalt+'€', cityR:city.metrics.arbeit.avgGehalt, landR:land.metrics.arbeit.avgGehalt, max:4400},
+  ]
+  const gap = cs.total - ls.total
   return (
-    <div className="max-w-6xl mx-auto px-4 py-12">
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-zinc-100 mb-2">Direkter Vergleich</h1>
-        <p className="text-zinc-500 text-sm">Wähle eine Stadt- und eine Landregion, um sie gegenüberzustellen.</p>
-      </div>
-
-      {/* Selector */}
-      <div className="grid sm:grid-cols-2 gap-4 mb-10">
-        <div>
-          <label className="block text-xs text-zinc-500 mb-2 flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-city inline-block" />
-            Stadtregion
-          </label>
-          <select
-            value={cityId}
-            onChange={e => setCityId(e.target.value)}
-            className="w-full bg-zinc-900 border border-zinc-700 text-zinc-100 text-sm rounded-lg px-3 py-2.5 focus:border-zinc-500 outline-none"
-          >
-            {cityRegions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs text-zinc-500 mb-2 flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-land inline-block" />
-            Landregion
-          </label>
-          <select
-            value={landId}
-            onChange={e => setLandId(e.target.value)}
-            className="w-full bg-zinc-900 border border-zinc-700 text-zinc-100 text-sm rounded-lg px-3 py-2.5 focus:border-zinc-500 outline-none"
-          >
-            {landRegions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-          </select>
-        </div>
-      </div>
-
-      {/* Score */}
-      <div className="card mb-8">
-        <div className="flex flex-wrap items-center justify-around gap-6">
-          <ScoreRing score={cityScore} label={city.name} color="city" />
-          <div className="text-center">
-            <div className="text-xs text-zinc-600 mb-2">Fairness-Score</div>
-            <GapBadge cityScore={cityScore} landScore={landScore} />
+    <div style={S.wrap}>
+      <div style={S.eyebrow}>Direkter Vergleich</div>
+      <h1 style={{fontFamily:'Cormorant Garamond',fontSize:'2.6rem',fontWeight:500,marginBottom:'2rem',color:'var(--ink)'}}>Region vergleichen</h1>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:1,background:'var(--mid)',marginBottom:'2.5rem'}}>
+        {[{regions:cityRegions,val:cityId,set:setCityId,label:'Stadtregion',color:'var(--city)'},{regions:landRegions,val:landId,set:setLandId,label:'Landregion',color:'var(--land)'}].map((x,i)=>(
+          <div key={i} style={{background:'var(--paper)',padding:'1.25rem 1.5rem'}}>
+            <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8}}>
+              <span style={{width:8,height:8,borderRadius:'50%',background:x.color,display:'inline-block'}}/>
+              <span style={{fontSize:11,fontFamily:'IBM Plex Mono',letterSpacing:'0.08em',textTransform:'uppercase',color:'var(--muted)'}}>{x.label}</span>
+            </div>
+            <select className="select-field" value={x.val} onChange={e=>x.set(e.target.value)}>
+              {x.regions.map(r=><option key={r.id} value={r.id}>{r.name}</option>)}
+            </select>
           </div>
-          <ScoreRing score={landScore} label={land.name} color="land" />
-        </div>
-      </div>
-
-      {/* Metric Cards */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
-        {metricDefs.map(def => (
-          <MetricCard
-            key={def.key}
-            icon={def.icon}
-            title={def.title}
-            cityName={city.name}
-            landName={land.name}
-            cityVal={def.cityFn(city.metrics)}
-            landVal={def.landFn(land.metrics)}
-            cityRaw={def.rawFn(city.metrics)}
-            landRaw={def.rawFn(land.metrics)}
-            max={def.max}
-          />
         ))}
       </div>
-
-      {/* Insights */}
-      <div>
-        <h2 className="text-sm font-medium text-zinc-400 mb-4">Wichtigste Erkenntnisse</h2>
-        <div className="space-y-3">
-          <div className="card border-l-2 border-l-blue-500 rounded-l-none">
-            <p className="text-sm text-zinc-400 leading-relaxed">
-              <span className="text-zinc-200 font-medium">{city.name}</span> hat{' '}
-              <span className="text-blue-400 font-medium">{internetRatio}× schnelleres Internet</span> als{' '}
-              {land.name}. Für Homeoffice und Digitalisierung ist das ein massiver Nachteil für ländliche Regionen.
-            </p>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:1,background:'var(--mid)',marginBottom:'2.5rem'}}>
+        <div style={{background:'white',padding:'2rem',display:'flex',flexDirection:'column',alignItems:'center',gap:'1rem'}}>
+          <ScoreCircle score={cs.total} label={city.name} color="var(--city)"/>
+          <div style={{textAlign:'center',padding:'0.5rem 1rem',background:gap>40?'#FDECEA':gap>20?'#FEF3E2':'#EDFBF4',borderRadius:2}}>
+            <span style={{fontSize:12,color:gap>40?'var(--danger)':gap>20?'var(--warn)':'var(--land)',fontWeight:500}}>
+              {gap>0?`Stadt führt um +${gap} Punkte`:`Gefälle: ${Math.abs(gap)} Punkte`}
+            </span>
           </div>
-          <div className="card border-l-2 border-l-yellow-500 rounded-l-none">
-            <p className="text-sm text-zinc-400 leading-relaxed">
-              Im ÖPNV gibt es{' '}
-              <span className="text-yellow-400 font-medium">{busRatio}× mehr Verbindungen</span> in{' '}
-              {city.name}. Ohne Auto ist das Leben in {land.name} kaum möglich.
-            </p>
-          </div>
-          <div className="card border-l-2 border-l-emerald-500 rounded-l-none">
-            <p className="text-sm text-zinc-400 leading-relaxed">
-              Wohnen auf dem Land ist deutlich günstiger:{' '}
-              <span className="text-emerald-400 font-medium">{mieteDiff} €/m² weniger Miete</span> in{' '}
-              {land.name} — ein echter Vorteil für Familien und Pendler.
-            </p>
-          </div>
+          <ScoreCircle score={ls.total} label={land.name} color="var(--land)"/>
         </div>
+        <div style={{background:'white',padding:'2rem'}}>
+          <div style={S.eyebrow}>Radar — 6 Dimensionen</div>
+          <ResponsiveContainer width="100%" height={260}>
+            <RadarChart data={radarData} margin={{top:10,right:30,left:30,bottom:10}}>
+              <PolarGrid stroke="#E8E4DC"/>
+              <PolarAngleAxis dataKey="dim" tick={{fontSize:10,fontFamily:'IBM Plex Mono',fill:'#9A9489'}}/>
+              <Radar name={city.name} dataKey="Stadt" stroke="var(--city)" fill="var(--city)" fillOpacity={0.15} strokeWidth={2}/>
+              <Radar name={land.name} dataKey="Land" stroke="var(--land)" fill="var(--land)" fillOpacity={0.15} strokeWidth={2}/>
+              <Tooltip contentStyle={{fontSize:11,border:'1px solid var(--mid)',borderRadius:2}}/>
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+      <div style={{background:'white',border:'1px solid var(--mid)'}}>
+        <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+          <thead>
+            <tr style={{borderBottom:'2px solid var(--ink)'}}>
+              <th style={{textAlign:'left',padding:'12px 16px',fontFamily:'IBM Plex Mono',fontSize:10,letterSpacing:'0.1em',textTransform:'uppercase'}}>Kategorie</th>
+              <th style={{textAlign:'right',padding:'12px 16px',color:'var(--city)',fontFamily:'IBM Plex Mono',fontSize:10}}>{city.name}</th>
+              <th style={{width:120,padding:'12px 16px'}}/>
+              <th style={{textAlign:'left',padding:'12px 16px',color:'var(--land)',fontFamily:'IBM Plex Mono',fontSize:10}}>{land.name}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {metrics.map((m,i)=>{
+              const cityW=Math.min(m.cityR/m.max*100,100), landW=Math.min(m.landR/m.max*100,100)
+              return (
+                <tr key={i} style={{borderBottom:'1px solid var(--mid)',background:i%2===0?'white':'var(--paper)'}}>
+                  <td style={{padding:'14px 16px',fontWeight:500,color:'var(--ink)',fontSize:13}}>{m.label}</td>
+                  <td style={{textAlign:'right',padding:'14px 16px',color:'var(--city)',fontWeight:600}}>{m.cityV}</td>
+                  <td style={{padding:'14px 16px'}}>
+                    <div style={{display:'flex',height:4,gap:1}}>
+                      <div style={{flex:1,background:'var(--mid)',borderRadius:1,overflow:'hidden',display:'flex',justifyContent:'flex-end'}}>
+                        <div style={{width:cityW+'%',background:'var(--city)',height:'100%',borderRadius:1}}/>
+                      </div>
+                      <div style={{flex:1,background:'var(--mid)',borderRadius:1,overflow:'hidden'}}>
+                        <div style={{width:landW+'%',background:'var(--land)',height:'100%',borderRadius:1}}/>
+                      </div>
+                    </div>
+                  </td>
+                  <td style={{padding:'14px 16px',color:'var(--land)',fontWeight:600}}>{m.landV}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   )
