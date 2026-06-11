@@ -1,20 +1,20 @@
 import { Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar.jsx'
 import Home from './pages/Home.jsx'
+import Dashboard from './pages/Dashboard.jsx'
 import Vergleich from './pages/Vergleich.jsx'
-import Index from './pages/Index.jsx'
+import Karte from './pages/Karte.jsx'
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-zinc-950">
+    <div className="min-h-screen" style={{background:'var(--paper)'}}>
       <Navbar />
-      <main>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/vergleich" element={<Vergleich />} />
-          <Route path="/index" element={<Index />} />
-        </Routes>
-      </main>
+      <Routes>
+        <Route path="/"          element={<Home />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/vergleich" element={<Vergleich />} />
+        <Route path="/karte"     element={<Karte />} />
+      </Routes>
     </div>
   )
 }
