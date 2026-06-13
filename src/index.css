@@ -2,25 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
 @layer base {
-  * { box-sizing: border-box; }
-  body {
-    @apply bg-zinc-950 text-zinc-100 antialiased;
-    font-family: 'Inter', system-ui, sans-serif;
+  *, *::before, *::after { box-sizing: border-box; }
+  :root {
+    --ink:    #0D0D0D;
+    --paper:  #F5F3EE;
+    --mid:    #E8E4DC;
+    --muted:  #9A9489;
+    --city:   #1A3A6B;
+    --land:   #1D6B4A;
+    --danger: #B53A2F;
+    --warn:   #C47A1A;
   }
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { @apply bg-zinc-900; }
-  ::-webkit-scrollbar-thumb { @apply bg-zinc-700 rounded-full; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, .editorial { font-family: 'Cormorant Garamond', Georgia, serif; line-height: 1.15; }
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: var(--mid); }
+  ::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 2px; }
 }
 
 @layer components {
-  .card {
-    @apply bg-zinc-900 border border-zinc-800 rounded-xl p-5;
-  }
-  .badge-city {
-    @apply bg-blue-500/10 text-blue-400 text-xs font-medium px-2 py-0.5 rounded-full;
-  }
-  .badge-land {
-    @apply bg-emerald-500/10 text-emerald-400 text-xs font-medium px-2 py-0.5 rounded-full;
-  }
+  .card { background: white; border: 1px solid var(--mid); border-radius: 2px; padding: 1.5rem; }
+  .eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  .badge-city { background: #EBF0F8; color: var(--city); font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 2px; }
+  .badge-land { background: #E8F4EE; color: var(--land); font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 2px; }
+  .btn-primary { background: var(--ink); color: var(--paper); font-size: 13px; font-weight: 500; padding: 0.6rem 1.4rem; border-radius: 2px; text-decoration: none; display: inline-block; transition: opacity 0.15s; }
+  .btn-primary:hover { opacity: 0.8; }
+  .btn-outline { border: 1px solid var(--ink); color: var(--ink); font-size: 13px; font-weight: 500; padding: 0.6rem 1.4rem; border-radius: 2px; text-decoration: none; display: inline-block; transition: background 0.15s; background: transparent; }
+  .btn-outline:hover { background: var(--mid); }
+  .select-field { width: 100%; background: white; border: 1px solid var(--mid); border-radius: 2px; padding: 0.5rem 0.75rem; font-size: 14px; font-family: 'IBM Plex Sans', sans-serif; color: var(--ink); outline: none; appearance: none; cursor: pointer; }
+  .select-field:focus { border-color: var(--ink); }
 }

@@ -1,110 +1,95 @@
 import { Link } from 'react-router-dom'
 import { regions, calcFairnessScore } from '../data/regions.js'
 
-const stats = [
-  { val: '4×', label: 'schnelleres Internet in der Stadt' },
-  { val: '34×', label: 'mehr ÖPNV-Verbindungen' },
-  { val: '3×', label: 'mehr Fachärzte pro Kopf' },
-  { val: '7,7 €', label: 'weniger Miete pro m² auf dem Land' },
-]
+const S = {
+  wrap:{maxWidth:1100,margin:'0 auto',padding:'0 1.5rem'},
+  eyebrow:{fontFamily:'IBM Plex Mono',fontSize:10,letterSpacing:'0.12em',textTransform:'uppercase',color:'var(--muted)',marginBottom:16},
+}
 
 export default function Home() {
-  const worst = [...regions]
-    .sort((a, b) => calcFairnessScore(a) - calcFairnessScore(b))
-    .slice(0, 3)
+  const worst = [...regions].map(r=>({...r,score:calcFairnessScore(r).total})).sort((a,b)=>a.score-b.score).slice(0,4)
+  const cityAvg = Math.round(regions.filter(r=>r.type==='city').reduce((s,r)=>s+calcFairnessScore(r).total,0)/8)
+  const landAvg = Math.round(regions.filter(r=>r.type==='land').reduce((s,r)=>s+calcFairnessScore(r).total,0)/8)
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-16">
-      {/* Hero */}
-      <div className="max-w-3xl mb-20">
-        <div className="flex items-center gap-2 mb-6">
-          <span className="badge-city">Stadtregion</span>
-          <span className="text-zinc-600 text-sm">vs.</span>
-          <span className="badge-land">Landregion</span>
-        </div>
-        <h1 className="text-4xl sm:text-5xl font-semibold text-zinc-100 leading-tight mb-6">
-          Haben Menschen auf dem Land
-          <br />
-          <span className="text-zinc-500">die gleichen Chancen?</span>
-        </h1>
-        <p className="text-zinc-400 text-lg leading-relaxed mb-8 max-w-2xl">
-          Dieser Atlas vergleicht Infrastruktur, Versorgung und Lebensqualität zwischen deutschen
-          Stadt- und Landregionen — datenbasiert, ehrlich und konkret.
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <Link
-            to="/vergleich"
-            className="px-5 py-2.5 bg-zinc-100 text-zinc-900 text-sm font-medium rounded-lg hover:bg-white transition-colors"
-          >
-            Region vergleichen →
-          </Link>
-          <Link
-            to="/index"
-            className="px-5 py-2.5 border border-zinc-700 text-zinc-300 text-sm font-medium rounded-lg hover:border-zinc-500 hover:text-zinc-100 transition-colors"
-          >
-            Fairness-Index ansehen
-          </Link>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-20">
-        {stats.map((s, i) => (
-          <div key={i} className="card text-center">
-            <div className="text-2xl font-semibold text-zinc-100 mb-1">{s.val}</div>
-            <div className="text-xs text-zinc-500 leading-snug">{s.label}</div>
+    <div>
+      <section style={{borderBottom:'1px solid var(--mid)',padding:'5rem 0 4rem'}}>
+        <div style={S.wrap}>
+          <div style={S.eyebrow}>Lebensqualitäts-Atlas Deutschland</div>
+          <h1 style={{fontFamily:'Cormorant Garamond',fontSize:'clamp(2.8rem,6vw,5rem)',fontWeight:500,lineHeight:1.08,maxWidth:680,marginBottom:'2rem',color:'var(--ink)'}}>
+            Gleiche Chancen<br/>
+            <em style={{color:'var(--muted)'}}>für alle?</em>
+          </h1>
+          <p style={{fontSize:16,color:'var(--muted)',maxWidth:520,lineHeight:1.7,marginBottom:'2.5rem'}}>
+            Ein datenbasierter Vergleich von Infrastruktur, Versorgung und Lebensqualität zwischen deutschen Stadt- und Landregionen — in 6 Dimensionen, für 16 Regionen.
+          </p>
+          <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+            <Link to="/vergleich" className="btn-primary">Region vergleichen</Link>
+            <Link to="/dashboard" className="btn-outline">Alle Daten ansehen</Link>
           </div>
-        ))}
-      </div>
-
-      {/* Themenbereiche */}
-      <div className="mb-20">
-        <h2 className="text-lg font-medium text-zinc-200 mb-6">Was wir vergleichen</h2>
-        <div className="grid sm:grid-cols-3 gap-4">
+        </div>
+      </section>
+      <section style={{padding:'3.5rem 0',borderBottom:'1px solid var(--mid)'}}>
+        <div style={{...S.wrap,display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'1px',background:'var(--mid)'}}>
           {[
-            { icon: '🌐', title: 'Internet & 5G', desc: 'Glasfaser-Ausbau, Durchschnittsgeschwindigkeit und Mobilfunkabdeckung im Vergleich.' },
-            { icon: '🚌', title: 'ÖPNV', desc: 'Busverbindungen pro Tag, Bahnhöfe und letzte Abendverbindung.' },
-            { icon: '🏥', title: 'Ärzteversorgung', desc: 'Hausärzte und Fachärzte pro 10.000 Einwohner, Entfernung zur nächsten Klinik.' },
-            { icon: '🏫', title: 'Bildung', desc: 'Schulen, Berufsschulen, Universitäten und Bibliotheken.' },
-            { icon: '💼', title: 'Arbeit', desc: 'Arbeitslosenquote, Durchschnittsgehalt und offene Stellen.' },
-            { icon: '🏠', title: 'Wohnen', desc: 'Durchschnittsmiete, Kaufpreise und durchschnittliche Wohnfläche.' },
-          ].map((t, i) => (
-            <div key={i} className="card hover:border-zinc-700 transition-colors">
-              <div className="text-2xl mb-3">{t.icon}</div>
-              <div className="text-sm font-medium text-zinc-200 mb-1.5">{t.title}</div>
-              <div className="text-xs text-zinc-500 leading-relaxed">{t.desc}</div>
+            {val:`${cityAvg}`,unit:'Stadt-Score',sub:'Ø über 8 Städte'},
+            {val:`${landAvg}`,unit:'Land-Score',sub:'Ø über 8 Kreise'},
+            {val:`${cityAvg-landAvg}`,unit:'Punkte Gefälle',sub:'Stadt schlägt Land'},
+            {val:'16',unit:'Regionen',sub:'verglichen'},
+          ].map((s,i)=>(
+            <div key={i} style={{background:'var(--paper)',padding:'2rem 1.5rem'}}>
+              <div style={{fontFamily:'Cormorant Garamond',fontSize:'3rem',fontWeight:500,lineHeight:1,color:'var(--ink)',marginBottom:6}}>{s.val}</div>
+              <div style={{fontSize:13,fontWeight:600,color:'var(--ink)',marginBottom:2}}>{s.unit}</div>
+              <div style={{fontSize:12,color:'var(--muted)'}}>{s.sub}</div>
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Abgehängte Regionen */}
-      <div>
-        <h2 className="text-lg font-medium text-zinc-200 mb-1">Am stärksten unterversorgt</h2>
-        <p className="text-sm text-zinc-500 mb-5">Regionen mit dem niedrigsten Fairness-Score im Datensatz</p>
-        <div className="space-y-3">
-          {worst.map(r => {
-            const score = calcFairnessScore(r)
-            return (
-              <div key={r.id} className="card flex items-center justify-between">
+      </section>
+      <section style={{padding:'4rem 0',borderBottom:'1px solid var(--mid)'}}>
+        <div style={S.wrap}>
+          <div style={S.eyebrow}>6 Dimensionen</div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'1px',background:'var(--mid)'}}>
+            {[
+              {icon:'🌐',title:'Internet & 5G',w:'20%',desc:'Glasfaser-Ausbau, Download-Speed, Mobilfunkabdeckung'},
+              {icon:'🚌',title:'ÖPNV',w:'22%',desc:'Busverbindungen pro Tag, Bahnhöfe, letzte Abfahrt'},
+              {icon:'🏥',title:'Ärzteversorgung',w:'22%',desc:'Hausärzte & Fachärzte pro 10.000 Einwohner, Klinik-Entfernung'},
+              {icon:'🏫',title:'Bildung',w:'16%',desc:'Schulen, Universitäten, Bibliotheken'},
+              {icon:'💼',title:'Arbeit',w:'13%',desc:'Durchschnittsgehalt, offene Stellen, Arbeitslosenquote'},
+              {icon:'🏠',title:'Wohnen',w:'7%',desc:'Durchschnittsmiete — günstig = gut für Landregionen'},
+            ].map((c,i)=>(
+              <div key={i} style={{background:'var(--paper)',padding:'1.75rem 1.5rem'}}>
+                <div style={{fontSize:22,marginBottom:10}}>{c.icon}</div>
+                <div style={{fontSize:14,fontWeight:600,color:'var(--ink)',marginBottom:4}}>{c.title}</div>
+                <div style={{fontFamily:'IBM Plex Mono',fontSize:10,color:'var(--city)',letterSpacing:'0.06em',marginBottom:8}}>Gewicht {c.w}</div>
+                <div style={{fontSize:12,color:'var(--muted)',lineHeight:1.6}}>{c.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+      <section style={{padding:'4rem 0'}}>
+        <div style={S.wrap}>
+          <div style={S.eyebrow}>Schlusslicht — niedrigste Fairness-Scores</div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:'1px',background:'var(--mid)'}}>
+            {worst.map((r,i)=>(
+              <div key={r.id} style={{background:'var(--paper)',padding:'1.5rem',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                 <div>
-                  <div className="text-sm font-medium text-zinc-200">{r.name}</div>
-                  <div className="text-xs text-zinc-500">{r.bundesland} · {r.einwohner.toLocaleString('de-DE')} Einwohner</div>
+                  <div style={{fontSize:11,fontFamily:'IBM Plex Mono',color:'var(--muted)',marginBottom:4}}>#{i+1} unterversorgt</div>
+                  <div style={{fontSize:16,fontWeight:500,color:'var(--ink)'}}>{r.name}</div>
+                  <div style={{fontSize:12,color:'var(--muted)'}}>{r.bundesland} · {r.einwohner.toLocaleString('de-DE')} Einwohner</div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <div className="text-lg font-semibold text-red-400">{score}</div>
-                    <div className="text-xs text-zinc-600">/ 100</div>
-                  </div>
-                  <div className="w-24 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-red-500 rounded-full" style={{ width: score + '%' }} />
-                  </div>
+                <div style={{textAlign:'right'}}>
+                  <div style={{fontFamily:'Cormorant Garamond',fontSize:'2.2rem',fontWeight:500,color:'var(--danger)',lineHeight:1}}>{r.score}</div>
+                  <div style={{fontSize:11,color:'var(--muted)'}}>/ 100</div>
                 </div>
               </div>
-            )
-          })}
+            ))}
+          </div>
+          <div style={{marginTop:'2rem',textAlign:'center'}}>
+            <Link to="/karte" className="btn-outline">Alle Regionen auf der Karte →</Link>
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   )
 }
